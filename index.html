@@ -111,28 +111,55 @@
         const resultDiv = document.getElementById('result');
         const attendanceForm = document.getElementById('attendance-form');
         const attendanceDataInput = document.getElementById('attendance_data');
-
-        // عرض الكاميرا
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-        .then(stream => {
-            video.srcObject = stream;
-        })
-        .catch(err => {
-            console.error('Error accessing camera: ', err);
-            alert('Error accessing camera: ' + err.message);
-        });
     
-
+        // فتح الكاميرا مع التحقق من الأذونات
+        function openCamera() {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+                    .then(stream => {
+                        video.srcObject = stream;
+                    })
+                    .catch(err => {
+                        console.error('Error accessing camera: ', err);
+                        showErrorMessage(err);
+                    });
+            } else {
+                alert("متصفحك لا يدعم الوصول إلى الكاميرا. يرجى تجربة متصفح آخر.");
+            }
+        }
+    
+        // عرض رسالة خطأ إذا تم رفض الوصول أو حدثت مشكلة
+        function showErrorMessage(err) {
+            let message = '';
+            switch (err.name) {
+                case 'NotAllowedError':
+                    message = "تم رفض الوصول إلى الكاميرا. يرجى السماح بالكاميرا من إعدادات المتصفح.";
+                    break;
+                case 'NotFoundError':
+                    message = "لم يتم العثور على كاميرا في هذا الجهاز. يرجى التأكد من وجود كاميرا.";
+                    break;
+                case 'NotReadableError':
+                    message = "لا يمكن الوصول إلى الكاميرا. قد يكون هناك تطبيق آخر يستخدم الكاميرا.";
+                    break;
+                default:
+                    message = "حدث خطأ غير معروف أثناء محاولة الوصول إلى الكاميرا.";
+            }
+            alert(message);
+        }
+    
+        // استدعاء فتح الكاميرا عند تحميل الصفحة
+        document.addEventListener("DOMContentLoaded", openCamera);
+    
         form.addEventListener('submit', function(e) {
             e.preventDefault();
-
+    
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
+    
             const imageData = canvas.toDataURL('image/png');
             imageInput.value = imageData;
-
+    
             fetch(form.action, {
                 method: 'POST',
                 headers: {
@@ -151,7 +178,7 @@
                     const today = new Date();
                     const remainingDays = Math.ceil((subscriptionEndDate - today) / (1000 * 60 * 60 * 24));
                     const totalDays = Math.ceil((subscriptionEndDate - subscriptionStartDate) / (1000 * 60 * 60 * 24));
-
+    
                     const table = `
                         <img src="${data.image_url}" alt="${data.name}'s Image" class="img-thumbnail" style="width: 180px; height: auto; margin-bottom: 10px;"/>
                         <p><strong>الكود:</strong> ${data.id}</p>
@@ -162,7 +189,7 @@
                         <p><strong>نوع الباقه:</strong> متبقي ${remainingDays} يوم  نوع الباقه ${totalDays} يوم</p>
                     `;
                     resultDiv.innerHTML = table;
-
+    
                     attendanceForm.style.display = 'block';
                     attendanceDataInput.value = JSON.stringify(data);
                 }
@@ -173,6 +200,7 @@
             });
         });
     </script>
+    
 
     <img src="/media/qr_codes/download.gif" alt="#" style="width: 100%; height: auto;">
     <script src="https://kit.fontawesome.com/b828253d90.js" crossorigin="anonymous"></script>
